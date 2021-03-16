@@ -10,23 +10,25 @@ var bucketParams = {
     Bucket : requestBucketName,
 };
 
-s3.listObjects(bucketParams, function(err, data) {
-    if (err) {
-        console.log("Error", err);
-    } else {
-        let requests = data.Contents;
-        requests.sort((a, b) => (a.Key > b.Key) ? 1 : -1);
-        if (requests.length > 0) {
-            let request = requests.shift();
-            console.log('request found: ' + request.Key);
-            deleteRequest(request);
-            handleCreateRequest(request);
+while (true) {
+    s3.listObjects(bucketParams, function(err, data) {
+        if (err) {
+            console.log("Error", err);
         } else {
-            console.log('no requests found');
-            sleep(100);
+            let requests = data.Contents;
+            requests.sort((a, b) => (a.Key > b.Key) ? 1 : -1);
+            if (requests.length > 0) {
+                let request = requests.shift();
+                console.log('request found: ' + request.Key);
+                deleteRequest(request);
+                handleCreateRequest(request);
+            } else {
+                console.log('no requests found');
+                sleep(100);
+            }
         }
-    }
-});
+    });
+}
 
 function deleteRequest(request) {
     let params = {
