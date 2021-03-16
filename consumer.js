@@ -3,10 +3,11 @@ let AWS = require('aws-sdk');
 AWS.config.update({region: 'us-east-1'});
 
 let s3 = new AWS.S3({apiVersion: '2006-03-01'});
-let bucketName = 'usu-cs5260-dallinpacker-web'
+let requestBucketName = 'usu-cs5260-dallinpacker-requests';
+let distBucketname = 'usu-cs5260-dallinpacker-dist';
 
 var bucketParams = {
-    Bucket : bucketName,
+    Bucket : requestBucketName,
 };
 
 s3.listObjects(bucketParams, function(err, data) {
@@ -17,8 +18,9 @@ s3.listObjects(bucketParams, function(err, data) {
         requests.sort((a, b) => (a.Key > b.Key) ? 1 : -1);
         if (requests.length > 0) {
             let request = requests.shift();
-            console.log('request found: ' + request.key);
+            console.log('request found: ' + request.Key);
             deleteRequest(request);
+            handleCreateRequest(request);
         } else {
             console.log('no requests found');
             sleep(100);
@@ -28,14 +30,30 @@ s3.listObjects(bucketParams, function(err, data) {
 
 function deleteRequest(request) {
     let params = {
-        Bucket: bucketName,
+        Bucket: requestBucketName,
         Key: request.Key
     };
     s3.deleteObject(params, function(err, data) {
         if (err) {
             console.log(err, err.stack);
         } else {
-            console.log('request ' + request.Key + ' removed from ' + bucketName);
+            console.log('request ' + request.Key + ' removed from ' + requestBucketName);
+        }
+    });
+}
+
+function handleCreateRequest(request) {
+    let params = {
+        Bucket: distBucketname,
+        Key: request.Key,
+        Body: JSON.stringify(request),
+        ContentType: 'application/json; charset=utf-8',
+    };
+    s3.putObject(params, function(err, data) {
+        if (err) {
+            console.log(err, err.stack);
+        } else {
+            console.log('request ' + request.Key + ' pushed to ' + distBucketname);
         }
     });
 }
